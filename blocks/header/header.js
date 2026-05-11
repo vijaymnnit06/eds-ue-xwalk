@@ -104,6 +104,47 @@ function toggleMenu(nav, navSections, forceExpanded = null) {
 }
 
 /**
+ * Builds and prepends the nav logo element from a nav-logo block in the nav fragment.
+ * The logo block is identified by the presence of a data-aue-model="nav-logo" attribute
+ * (set by the Universal Editor) or by matching the block class name "nav-logo".
+ * It is removed from its original position in the fragment and inserted as the
+ * very first child of the <nav> element so it appears before brand, sections and tools.
+ * @param {Element} nav The nav element
+ */
+function buildNavLogo(nav) {
+  // The nav-logo block is decorated by EDS as a div with class "nav-logo block"
+  const logoBlock = nav.querySelector('.nav-logo.block');
+  if (!logoBlock) return;
+
+  // Extract image and alt from the block's content cells (EDS block table format)
+  // Row 0, Cell 0 → image reference; Row 0, Cell 1 → alt text (optional second cell)
+  const cells = logoBlock.querySelectorAll(':scope > div > div');
+  const imgSrc = cells[0]?.querySelector('img')?.src
+    || cells[0]?.querySelector('a')?.href
+    || cells[0]?.textContent?.trim();
+  const imgAlt = cells[1]?.textContent?.trim() || 'Site logo';
+
+  // Build the logo element
+  const logoWrapper = document.createElement('div');
+  logoWrapper.classList.add('nav-logo-wrapper');
+
+  if (imgSrc) {
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = imgAlt;
+    img.loading = 'eager'; // logo is above-the-fold; load immediately
+    img.className = 'nav-logo-img';
+    logoWrapper.append(img);
+  }
+
+  // Remove the raw block from the DOM (we've replaced it with our wrapper)
+  logoBlock.remove();
+
+  // Prepend logo as the very first child of nav (before hamburger, brand, sections, tools)
+  nav.prepend(logoWrapper);
+}
+
+/**
  * loads and decorates the header, mainly the nav
  * @param {Element} block The header block element
  */
@@ -124,6 +165,9 @@ export default async function decorate(block) {
     const section = nav.children[i];
     if (section) section.classList.add(`nav-${c}`);
   });
+
+  // Build and prepend the logo before all other nav elements
+  buildNavLogo(nav);
 
   const navBrand = nav.querySelector('.nav-brand');
   const brandLink = navBrand.querySelector('.button');
