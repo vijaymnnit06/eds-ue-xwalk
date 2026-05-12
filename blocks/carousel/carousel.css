@@ -8,6 +8,13 @@
   width: 100%;
 }
 
+/* ── Hidden raw UE rows (must stay in DOM for UE data-aue-* targeting) ── */
+
+.carousel-raw-row {
+  display: none !important;
+  visibility: hidden;
+}
+
 /* ── Slides wrapper ─────────────────────────────────────── */
 
 .carousel-slides {

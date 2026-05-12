@@ -1,171 +1,137 @@
 /**
  * Carousel Block
  *
- * Renders a slideshow carousel from Carousel Slide child items.
- * Each slide is authored in the Universal Editor with:
- *   - image   (DAM asset reference → <picture>)
- *   - imageAlt (alt text string)
- *   - text    (slide caption / overlay text)
- *   - link    (AEM content path or external URL)
- *   - linkText (CTA label)
+ * Renders a slideshow carousel from Carousel Slide child items authored
+ * in the Universal Editor.
  *
- * DOM structure produced by EDS (one row per Carousel Slide item):
- *   <div class="carousel block">
- *     <div>                      ← slide row
- *       <div><picture/></div>    ← cell 0: image
- *       <div>alt text</div>      ← cell 1: imageAlt
- *       <div>slide text</div>    ← cell 2: text
- *       <div><a href>...</a></div> ← cell 3: link
- *       <div>link text</div>    ← cell 4: linkText
- *     </div>
- *     ...
- *   </div>
+ * IMPORTANT — Universal Editor compatibility:
+ * The UE injects data-aue-resource / data-aue-type / data-aue-model
+ * attributes on every slide row (div > div > div). These attributes MUST
+ * remain in the DOM so the UE can target them for in-context editing and
+ * the Properties Rail. Therefore this decorator does NOT call
+ * block.textContent = '' or remove any original rows. Instead it:
+ *   1. Reads data from the existing instrumented cells.
+ *   2. Hides the raw rows with a CSS class.
+ *   3. Appends a new .carousel-slides + .carousel-controls layer.
  *
- * Output structure after decorate():
- *   <div class="carousel block">
- *     <div class="carousel-slides">
- *       <div class="carousel-slide" aria-hidden="true/false">
- *         <div class="carousel-slide-image"><picture>...</picture></div>
- *         <div class="carousel-slide-content">
- *           <p class="carousel-slide-text">...</p>
- *           <a class="carousel-slide-link" href="...">Link Text</a>
- *         </div>
- *       </div>
- *       ...
- *     </div>
- *     <div class="carousel-controls">
- *       <button class="carousel-btn carousel-btn-prev" aria-label="Previous slide">&#10094;</button>
- *       <div class="carousel-indicators">
- *         <button class="carousel-indicator active" aria-label="Go to slide 1"></button>
- *         ...
- *       </div>
- *       <button class="carousel-btn carousel-btn-next" aria-label="Next slide">&#10095;</button>
- *     </div>
- *   </div>
+ * EDS cell layout per Carousel Slide row:
+ *   row (div[data-aue-resource])
+ *     ├─ cell 0 → image   (reference → <picture><img>)
+ *     ├─ cell 1 → imageAlt (text)
+ *     ├─ cell 2 → text     (text)
+ *     ├─ cell 3 → link     (aem-content → <a href>)
+ *     └─ cell 4 → linkText (text)
  */
 
-const SLIDE_INTERVAL = 5000; // ms between auto-advance
+const SLIDE_INTERVAL = 5000;
 
-/**
- * Moves the carousel to a specific slide index.
- * @param {HTMLElement} block - The carousel block element
- * @param {number} index - Target slide index (0-based)
- */
 function goToSlide(block, index) {
   const slides = [...block.querySelectorAll('.carousel-slide')];
   const indicators = [...block.querySelectorAll('.carousel-indicator')];
   const total = slides.length;
-
-  // Wrap around
-  const targetIndex = (index + total) % total;
+  const target = (index + total) % total;
 
   slides.forEach((slide, i) => {
-    slide.setAttribute('aria-hidden', i !== targetIndex ? 'true' : 'false');
-    slide.classList.toggle('active', i === targetIndex);
+    slide.classList.toggle('active', i === target);
+    slide.setAttribute('aria-hidden', i !== target ? 'true' : 'false');
   });
 
-  indicators.forEach((indicator, i) => {
-    indicator.classList.toggle('active', i === targetIndex);
-    indicator.setAttribute('aria-pressed', i === targetIndex ? 'true' : 'false');
+  indicators.forEach((dot, i) => {
+    dot.classList.toggle('active', i === target);
+    dot.setAttribute('aria-pressed', i === target ? 'true' : 'false');
   });
 
-  // Store current index on the block for reference
-  block.dataset.currentSlide = targetIndex;
+  block.dataset.currentSlide = target;
 }
 
-/**
- * Returns the current active slide index.
- * @param {HTMLElement} block
- * @returns {number}
- */
 function getCurrentIndex(block) {
   return parseInt(block.dataset.currentSlide || '0', 10);
 }
 
-/**
- * Starts the auto-play timer.
- * @param {HTMLElement} block
- * @returns {number} interval id
- */
 function startAutoPlay(block) {
-  return setInterval(() => {
-    goToSlide(block, getCurrentIndex(block) + 1);
-  }, SLIDE_INTERVAL);
+  return setInterval(() => goToSlide(block, getCurrentIndex(block) + 1), SLIDE_INTERVAL);
 }
 
-/**
- * Decorates the carousel block.
- * @param {HTMLElement} block - The carousel block element
- */
 export default function decorate(block) {
-  // Collect raw slide rows from EDS table markup
+  // The direct children of the block are the slide rows.
+  // Each row is a div potentially carrying data-aue-resource (injected by UE).
   const rows = [...block.querySelectorAll(':scope > div')];
   if (!rows.length) return;
 
-  // Build slides wrapper
+  // Step 1 — hide raw rows without removing them (preserves UE data-aue-* attrs)
+  rows.forEach((row) => {
+    row.classList.add('carousel-raw-row');
+  });
+
+  // Step 2 — build visual slides by READING (not moving) data from the raw rows
   const slidesWrapper = document.createElement('div');
   slidesWrapper.classList.add('carousel-slides');
 
   rows.forEach((row) => {
     const cells = [...row.querySelectorAll(':scope > div')];
 
-    // Cell 0: image (EDS renders the DAM reference as a <picture> element)
-    const imageCell = cells[0];
-    // Cell 1: alt text (plain text string)
+    // Read image — EDS renders the DAM reference as a <picture> element
+    const picture = cells[0]?.querySelector('picture');
+    const imgEl = cells[0]?.querySelector('img');
+
+    // Read alt text
     const altText = cells[1]?.textContent?.trim() || '';
-    // Cell 2: slide text / caption
+
+    // Read slide text
     const slideText = cells[2]?.textContent?.trim() || '';
-    // Cell 3: link (EDS renders aem-content as an <a> tag)
-    const linkEl = cells[3]?.querySelector('a');
-    const linkHref = linkEl?.href || cells[3]?.textContent?.trim() || '';
-    // Cell 4: link text label
-    const linkText = cells[4]?.textContent?.trim() || linkEl?.textContent?.trim() || '';
 
-    // Fix alt text on the picture's img element if present
-    const img = imageCell?.querySelector('img');
-    if (img && altText) img.alt = altText;
+    // Read link href — aem-content renders as <a>; fallback to raw text
+    const linkAnchor = cells[3]?.querySelector('a');
+    const linkHref = linkAnchor?.href || cells[3]?.textContent?.trim() || '';
 
-    // Build slide element
+    // Read link label
+    const linkText = cells[4]?.textContent?.trim()
+      || linkAnchor?.textContent?.trim()
+      || '';
+
+    // Apply alt text to image
+    if (imgEl && altText) imgEl.alt = altText;
+
+    // Build slide
     const slide = document.createElement('div');
     slide.classList.add('carousel-slide');
     slide.setAttribute('aria-hidden', 'true');
 
-    // Image container
+    // Image container — clone the picture so the original stays in the raw row
     const imageContainer = document.createElement('div');
     imageContainer.classList.add('carousel-slide-image');
-    if (imageCell) {
-      // Move the picture/img from the raw cell into our container
-      const picture = imageCell.querySelector('picture') || imageCell.querySelector('img');
-      if (picture) imageContainer.append(picture);
+    if (picture) {
+      imageContainer.append(picture.cloneNode(true));
+    } else if (imgEl) {
+      imageContainer.append(imgEl.cloneNode(true));
     }
     slide.append(imageContainer);
 
-    // Content overlay (text + link)
+    // Content overlay
     const content = document.createElement('div');
     content.classList.add('carousel-slide-content');
 
     if (slideText) {
-      const textEl = document.createElement('p');
-      textEl.classList.add('carousel-slide-text');
-      textEl.textContent = slideText;
-      content.append(textEl);
+      const p = document.createElement('p');
+      p.classList.add('carousel-slide-text');
+      p.textContent = slideText;
+      content.append(p);
     }
 
     if (linkHref) {
-      const link = document.createElement('a');
-      link.classList.add('carousel-slide-link');
-      link.href = linkHref;
-      link.textContent = linkText || 'Learn More';
-      link.setAttribute('aria-label', linkText || 'Learn More');
-      content.append(link);
+      const a = document.createElement('a');
+      a.classList.add('carousel-slide-link');
+      a.href = linkHref;
+      a.textContent = linkText || 'Learn More';
+      a.setAttribute('aria-label', linkText || 'Learn More');
+      content.append(a);
     }
 
     if (content.hasChildNodes()) slide.append(content);
-
     slidesWrapper.append(slide);
   });
 
-  // Build controls (prev button, indicators, next button)
+  // Step 3 — build controls
   const controls = document.createElement('div');
   controls.classList.add('carousel-controls');
 
@@ -182,8 +148,7 @@ export default function decorate(block) {
   const indicators = document.createElement('div');
   indicators.classList.add('carousel-indicators');
 
-  const slideCount = rows.length;
-  for (let i = 0; i < slideCount; i += 1) {
+  rows.forEach((_, i) => {
     const dot = document.createElement('button');
     dot.classList.add('carousel-indicator');
     dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
@@ -194,15 +159,14 @@ export default function decorate(block) {
       block.autoPlayTimer = startAutoPlay(block);
     });
     indicators.append(dot);
-  }
+  });
 
   controls.append(prevBtn, indicators, nextBtn);
 
-  // Clear the block and append clean markup
-  block.textContent = '';
+  // Step 4 — append new visual layer AFTER the hidden raw rows
   block.append(slidesWrapper, controls);
 
-  // Wire up prev / next buttons
+  // Step 5 — wire interactivity
   prevBtn.addEventListener('click', () => {
     clearInterval(block.autoPlayTimer);
     goToSlide(block, getCurrentIndex(block) - 1);
@@ -215,7 +179,6 @@ export default function decorate(block) {
     block.autoPlayTimer = startAutoPlay(block);
   });
 
-  // Keyboard navigation (left/right arrows)
   block.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') {
       clearInterval(block.autoPlayTimer);
@@ -228,17 +191,11 @@ export default function decorate(block) {
     }
   });
 
-  // Pause auto-play on hover / focus
   block.addEventListener('mouseenter', () => clearInterval(block.autoPlayTimer));
-  block.addEventListener('mouseleave', () => {
-    block.autoPlayTimer = startAutoPlay(block);
-  });
+  block.addEventListener('mouseleave', () => { block.autoPlayTimer = startAutoPlay(block); });
   block.addEventListener('focusin', () => clearInterval(block.autoPlayTimer));
-  block.addEventListener('focusout', () => {
-    block.autoPlayTimer = startAutoPlay(block);
-  });
+  block.addEventListener('focusout', () => { block.autoPlayTimer = startAutoPlay(block); });
 
-  // Activate first slide and start auto-play
   goToSlide(block, 0);
   block.autoPlayTimer = startAutoPlay(block);
 }
