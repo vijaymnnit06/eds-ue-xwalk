@@ -1,0 +1,13 @@
+/*
+ * Nav Logo Block
+ *
+ * This block is rendered hidden on standalone /nav fragment page previews.
+ * The actual logo display is handled by .nav-logo-wrapper styles in
+ * blocks/header/header.css, where header.js extracts the image and
+ * re-renders it as the first element inside the <nav>.
+ */
+
+/* Hide the raw block table on standalone nav fragment previews */
+.nav-logo {
+  display: none;
+}
