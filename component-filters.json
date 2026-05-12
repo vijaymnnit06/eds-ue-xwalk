@@ -16,7 +16,8 @@
       "cards",
       "columns",
       "fragment",
-      "nav-logo"
+      "nav-logo",
+      "carousel"
     ]
   },
   {
@@ -38,6 +39,12 @@
       "image",
       "button",
       "title"
+    ]
+  },
+  {
+    "id": "carousel",
+    "components": [
+      "carousel-slide"
     ]
   }
 ]

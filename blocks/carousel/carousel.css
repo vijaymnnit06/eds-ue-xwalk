@@ -1,0 +1,183 @@
+/* ============================================================
+   Carousel Block
+   ============================================================ */
+
+.carousel {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* ── Slides wrapper ─────────────────────────────────────── */
+
+.carousel-slides {
+  position: relative;
+  width: 100%;
+}
+
+/* Individual slide */
+.carousel-slide {
+  display: none;
+  position: relative;
+  width: 100%;
+}
+
+.carousel-slide.active {
+  display: block;
+}
+
+/* ── Slide image ────────────────────────────────────────── */
+
+.carousel-slide-image {
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 16 / 9; /* reserves space before image loads → prevents CLS */
+  background-color: var(--light-color, #f0f0f0);
+}
+
+.carousel-slide-image picture,
+.carousel-slide-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* ── Slide content overlay ──────────────────────────────── */
+
+.carousel-slide-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 32px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 60%));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.carousel-slide-text {
+  margin: 0;
+  font-size: var(--body-font-size-m, 1rem);
+  font-family: var(--body-font-family, sans-serif);
+  line-height: 1.4;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 50%);
+}
+
+.carousel-slide-link {
+  display: inline-block;
+  padding: 8px 20px;
+  background-color: var(--link-color, #006cb4);
+  color: #fff;
+  text-decoration: none;
+  font-size: var(--body-font-size-s, 0.875rem);
+  font-family: var(--body-font-family, sans-serif);
+  font-weight: 600;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.carousel-slide-link:hover,
+.carousel-slide-link:focus {
+  background-color: var(--link-hover-color, #004f8a);
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ── Controls wrapper ───────────────────────────────────── */
+
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0;
+  background-color: var(--background-color, #fff);
+}
+
+/* ── Prev / Next buttons ────────────────────────────────── */
+
+.carousel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid var(--dark-color, #333);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dark-color, #333);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.carousel-btn:hover,
+.carousel-btn:focus {
+  background-color: var(--dark-color, #333);
+  color: #fff;
+  outline: 2px solid var(--link-color, #006cb4);
+  outline-offset: 2px;
+}
+
+/* ── Dot indicators ─────────────────────────────────────── */
+
+.carousel-indicators {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.carousel-indicator {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 2px solid var(--dark-color, #333);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.carousel-indicator.active {
+  background-color: var(--dark-color, #333);
+  transform: scale(1.3);
+}
+
+.carousel-indicator:hover,
+.carousel-indicator:focus {
+  background-color: var(--link-color, #006cb4);
+  border-color: var(--link-color, #006cb4);
+  outline: none;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+
+@media (width >= 900px) {
+  .carousel-slide-content {
+    padding: 32px 48px;
+    gap: 16px;
+  }
+
+  .carousel-slide-text {
+    font-size: var(--body-font-size-l, 1.125rem);
+    max-width: 600px;
+  }
+
+  .carousel-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.125rem;
+  }
+
+  .carousel-indicator {
+    width: 12px;
+    height: 12px;
+  }
+}
