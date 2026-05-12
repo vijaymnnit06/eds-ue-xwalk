@@ -139,6 +139,28 @@ header nav[aria-expanded='true'] .nav-hamburger-icon::after {
   }
 }
 
+/* nav logo */
+header nav .nav-logo-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  order: -1; /* always render before every other nav child */
+}
+
+header nav .nav-logo-img {
+  display: block;
+  width: auto;
+  height: 40px;
+  max-width: 160px;
+  object-fit: contain;
+}
+
+@media (width >= 900px) {
+  header nav .nav-logo-img {
+    height: 48px;
+  }
+}
+
 /* brand */
 header .nav-brand {
   grid-area: brand;
